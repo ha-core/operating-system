@@ -272,8 +272,8 @@ jobs:
       - name: 设置时区
         run: |
           sed -i ${{ vars.TIME_SYNCD }} buildroot-external/rootfs-overlay/etc/systemd/timesyncd.conf
-          sed -i ${{ vars.VERSION_SOURCE }} buildroot-external/rootfs-overlay/usr/sbin/hassos-supervisor buildroot-external/package/hassio/hassio.mk buildroot-external/package/hassio/create-data-partition.sh buildroot-external/rootfs-overlay/usr/libexec/hassos-apparmor
-          sed -i ${{ vars.OS_GHCR_SOURCE }} buildroot-external/rootfs-overlay/usr/sbin/hassos-supervisor
+          sed -i ${{ vars.VERSION_SOURCE }} buildroot-external/rootfs-overlay/usr/sbin/haos-supervisor buildroot-external/package/hassio/hassio.mk buildroot-external/package/hassio/create-data-partition.sh buildroot-external/rootfs-overlay/usr/libexec/haos-apparmor
+          sed -i ${{ vars.OS_GHCR_SOURCE }} buildroot-external/rootfs-overlay/usr/sbin/haos-supervisor
 
       - name: Setup Python version ${{ env.PYTHON_VERSION }}
         if: ${{ github.event_name != 'release' }}
