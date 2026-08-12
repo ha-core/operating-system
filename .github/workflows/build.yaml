@@ -528,7 +528,7 @@ jobs:
         token: ${{ secrets.GIT_TOKEN }}
 
     - name: Bump Home Assistant OS ${{ needs.prepare.outputs.channel }} channel version
-      uses: home-assistant/actions/helpers/version-push@master
+      uses: ha-core/actions/helpers/version-push@master
       with:
         key: "hassos[]"
         key-description: "Home Assistant OS"
@@ -537,7 +537,7 @@ jobs:
 
     - name: Bump Home Assistant OS beta channel version on stable release
       if: ${{ needs.prepare.outputs.channel == 'stable' }}
-      uses: home-assistant/actions/helpers/version-push@master
+      uses: ha-core/actions/helpers/version-push@master
       with:
         key: "hassos[]"
         key-description: "Home Assistant OS"
