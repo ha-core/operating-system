@@ -11,6 +11,7 @@ OS_GHCR_SOURCE）。处理内容：
 5. haos-apparmor：替换版本 API 地址。
 6. dind-import-containers.sh：替换 GHCR 仓库。
 7. daemon.json：添加南大镜像加速 Docker Hub 拉取。
+8. fetch-container-image.sh：supervisor 镜像从 fork 仓库拉取。
 """
 from __future__ import annotations
 
@@ -62,9 +63,9 @@ def patch_haos_supervisor(filepath: Path) -> None:
         "    # Pull in the Supervisor\n"
         '    if docker pull "${SUPERVISOR_IMAGE}:${SUPERVISOR_VERSION}"; then\n',
         '    DEFAULT_SUPERVISOR_IMAGE="${SUPERVISOR_IMAGE}"\n'
-        '    GHCR_MIRROR=$(curl -sSL https://os-artifacts.home-assistant.xin/ghcr || echo "ghcr.io")\n'
+        '    GHCR_MIRROR=$(curl -sSL --connect-timeout 2 --max-time 3 https://os-artifacts.home-assistant.xin/ghcr || echo "ghcr.io")\n'
         '    [ -z "${GHCR_MIRROR}" ] && GHCR_MIRROR="ghcr.io"\n'
-        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@ghcr.io@${GHCR_MIRROR}@g; s/home-assistant/ha-core/g")\n'
+        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@ghcr.io@${GHCR_MIRROR}@g; s/home-assistant/home-assistant-xin/g")\n'
         "\n"
         "    # Pull in the Supervisor\n"
         '    if docker pull "${SUPERVISOR_IMAGE}:${SUPERVISOR_VERSION}"; then\n',
@@ -84,7 +85,7 @@ def patch_haos_supervisor(filepath: Path) -> None:
     content = _replace_once(
         content,
         "curl -s --location https://version.home-assistant.io/stable.json",
-        "curl -s --location https://version.smart-assistant.cn/stable.json",
+        "curl -s --location --connect-timeout 2 --max-time 3 https://version.smart-assistant.cn/stable.json",
         "haos-supervisor: replace version API URL with timeout",
     )
 
@@ -144,8 +145,38 @@ def patch_dind_import(filepath: Path) -> None:
     content = _replace_once(
         content,
         'docker tag "${supervisor}" "ghcr.io/home-assistant/${arch}-hassio-supervisor:latest"',
-        'docker tag "${supervisor}" "ghcr.io/ha-core/${arch}-hassio-supervisor:latest"',
+        'docker tag "${supervisor}" "ghcr.io/home-assistant-xin/${arch}-hassio-supervisor:latest"',
         "dind-import-containers: replace GHCR repo",
+    )
+
+    filepath.write_text(content, encoding="utf-8")
+    print(f"OK: patched {filepath}")
+
+
+def patch_fetch_container_image(filepath: Path) -> None:
+    """为 fetch-container-image.sh 打国内加速补丁。
+
+    版本 API 返回的 images.supervisor 仍是上游仓库名
+    ghcr.io/home-assistant/{arch}-hassio-supervisor，构建时需替换为
+    fork 仓库 ghcr.io/home-assistant-xin/，否则拉取的是不含 patch 的上游镜像。
+    """
+    content = filepath.read_text(encoding="utf-8")
+
+    content = _replace_once(
+        content,
+        'image_name=$(jq -e -r --arg image_json_name "${image_json_name}" \\\n'
+        '\t--arg arch "${arch}" --arg machine "${machine}" \\\n'
+        "\t'.images[$image_json_name] | sub(\"{arch}\"; $arch) | sub(\"{machine}\"; $machine)' \\\n"
+        '\t< "${version_json}")\n',
+        'image_name=$(jq -e -r --arg image_json_name "${image_json_name}" \\\n'
+        '\t--arg arch "${arch}" --arg machine "${machine}" \\\n'
+        "\t'.images[$image_json_name] | sub(\"{arch}\"; $arch) | sub(\"{machine}\"; $machine)' \\\n"
+        '\t< "${version_json}")\n'
+        '# China accel: supervisor 镜像从 fork 仓库拉取\n'
+        'if [ "${image_json_name}" = "supervisor" ]; then\n'
+        '\timage_name="${image_name/home-assistant/home-assistant-xin}"\n'
+        'fi\n',
+        "fetch-container-image: replace supervisor repo to fork",
     )
 
     filepath.write_text(content, encoding="utf-8")
@@ -192,6 +223,9 @@ def main() -> None:
     )
     patch_dind_import(
         root / "buildroot-external" / "package" / "hassio" / "dind-import-containers.sh"
+    )
+    patch_fetch_container_image(
+        root / "buildroot-external" / "package" / "hassio" / "fetch-container-image.sh"
     )
 
     patch_daemon_json(
