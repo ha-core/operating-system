@@ -65,7 +65,7 @@ def patch_haos_supervisor(filepath: Path) -> None:
         '    DEFAULT_SUPERVISOR_IMAGE="${SUPERVISOR_IMAGE}"\n'
         '    GHCR_MIRROR=$(curl -sSL --connect-timeout 2 --max-time 3 https://os-artifacts.home-assistant.xin/ghcr || echo "ghcr.io")\n'
         '    [ -z "${GHCR_MIRROR}" ] && GHCR_MIRROR="ghcr.io"\n'
-        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@ghcr.io@${GHCR_MIRROR}@g; s/home-assistant/home-assistant-xin/g")\n'
+        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@ghcr.io@${GHCR_MIRROR}@g; s/home-assistant/ha-core/g")\n'
         "\n"
         "    # Pull in the Supervisor\n"
         '    if docker pull "${SUPERVISOR_IMAGE}:${SUPERVISOR_VERSION}"; then\n',
@@ -145,7 +145,7 @@ def patch_dind_import(filepath: Path) -> None:
     content = _replace_once(
         content,
         'docker tag "${supervisor}" "ghcr.io/home-assistant/${arch}-hassio-supervisor:latest"',
-        'docker tag "${supervisor}" "ghcr.io/home-assistant-xin/${arch}-hassio-supervisor:latest"',
+        'docker tag "${supervisor}" "ghcr.io/ha-core/${arch}-hassio-supervisor:latest"',
         "dind-import-containers: replace GHCR repo",
     )
 
@@ -174,7 +174,7 @@ def patch_fetch_container_image(filepath: Path) -> None:
         '\t< "${version_json}")\n'
         '# China accel: supervisor 镜像从 fork 仓库拉取\n'
         'if [ "${image_json_name}" = "supervisor" ]; then\n'
-        '\timage_name="${image_name/home-assistant/home-assistant-xin}"\n'
+        '\timage_name="${image_name/home-assistant/ha-core}"\n'
         'fi\n',
         "fetch-container-image: replace supervisor repo to fork",
     )
