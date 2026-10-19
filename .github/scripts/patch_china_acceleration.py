@@ -5,7 +5,8 @@
 用单一脚本替代所有 sed + GitHub Variables 方案（TIME_SYNCD、VERSION_SOURCE、
 OS_GHCR_SOURCE）。处理内容：
 1. timesyncd.conf：Cloudflare NTP 替换为阿里云 NTP。
-2. haos-supervisor：替换 GHCR 仓库 + 版本 API 地址。
+2. haos-supervisor：插入 GHCR mirror 解析（锚定式一步替换 ghcr.io/home-assistant/ 前缀，
+   避免 mirror 域名含 home-assistant 时被二次替换）、拉取后 tag 还原、版本 API 地址替换。
 3. hassio.mk：替换版本 API 地址。
 4. create-data-partition.sh：替换版本 API 地址。
 5. haos-apparmor：替换版本 API 地址。
@@ -65,7 +66,11 @@ def patch_haos_supervisor(filepath: Path) -> None:
         '    DEFAULT_SUPERVISOR_IMAGE="${SUPERVISOR_IMAGE}"\n'
         '    GHCR_MIRROR=$(curl -sSL --connect-timeout 2 --max-time 3 https://os-artifacts.home-assistant.xin/ghcr || echo "ghcr.io")\n'
         '    [ -z "${GHCR_MIRROR}" ] && GHCR_MIRROR="ghcr.io"\n'
-        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@ghcr.io@${GHCR_MIRROR}@g; s/home-assistant/ha-core/g")\n'
+        '    # NOTE: one anchored substitution, not two global ones. A global\n'
+        '    # s/home-assistant/ha-core/g would also rewrite a mirror\n'
+        '    # domain that itself contains "home-assistant" (e.g.\n'
+        '    # ghcr.home-assistant.xin), corrupting the host and breaking the pull.\n'
+        '    SUPERVISOR_IMAGE=$(echo "${SUPERVISOR_IMAGE}" | sed "s@^ghcr\\.io/home-assistant/@${GHCR_MIRROR}/ha-core/@")\n'
         "\n"
         "    # Pull in the Supervisor\n"
         '    if docker pull "${SUPERVISOR_IMAGE}:${SUPERVISOR_VERSION}"; then\n',
