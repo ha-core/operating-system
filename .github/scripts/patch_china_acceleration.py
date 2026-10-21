@@ -90,7 +90,7 @@ def patch_haos_supervisor(filepath: Path) -> None:
     content = _replace_once(
         content,
         "curl -s --location https://version.home-assistant.io/stable.json",
-        "curl -s --location --connect-timeout 2 --max-time 3 https://version.smart-assistant.cn/stable.json",
+        "curl -s --location https://version.smart-assistant.cn/stable.json",
         "haos-supervisor: replace version API URL with timeout",
     )
 

@@ -257,7 +257,7 @@ def patch_test_os_update(root: Path) -> None:
 
     content = filepath.read_text(encoding="utf-8")
     old = "https://version.home-assistant.io/stable.json"
-    new = "https://version.home-assistant.xin/stable.json"
+    new = "https://version.smart-assistant.cn/stable.json"
     if new in content:
         print("SKIP: test_os_update.py already patched")
         return
